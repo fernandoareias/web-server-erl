@@ -9,16 +9,8 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    SupFlags = #{strategy => one_for_all, intensity => 1, period => 5},
+    SupFlags = #{strategy => rest_for_one, intensity => 100, period => 3600},
     ChildSpecs = [
-        % #{
-        %     id => request_processor,
-        %     start => {web_server_request_listener, start_link, []},
-        %     restart => permanent,
-        %     shutdown => 5000,
-        %     type => worker,
-        %     modules => [web_server_request_listener]
-        % },
         #{
             id => request_queue,
             start => {web_server_request_queue, start_link, []},
@@ -26,6 +18,23 @@ init([]) ->
             shutdown => 5000,
             type => worker,
             modules => [web_server_request_queue]
+        },
+        #{
+            id => http_parser,
+            start => {web_server_http_parser, start_link, []},
+            restart => permanent,
+            shutdown => 5000,
+            type => worker,
+            modules => [web_server_http_parser]
+        },    
+        #{
+            id => request_processor,
+            start => {web_server_request_listener, start_link, []},
+            restart => permanent,
+            shutdown => 5000,
+            type => worker,
+            modules => [web_server_request_listener]
         }
+        
     ],
     {ok, {SupFlags, ChildSpecs}}.

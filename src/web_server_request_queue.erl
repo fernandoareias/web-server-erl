@@ -55,7 +55,7 @@ handle_call(_Request, _From, State) ->
 %%%===================================================================
 
 add_queue(State, Item) ->
-    io:format("Adding message to queue: ~p~n", [Item]),
+    io:format("[~p] - Adding message to queue: ~p~n", [calendar:local_time(), Item]),
     NewQueue = queue:in(Item, State#state.queue),
     NewSize = State#state.size + 1,
     State#state{queue = NewQueue, size = NewSize}.
@@ -63,7 +63,7 @@ add_queue(State, Item) ->
 notify_subscribers(Item, Subscribers) ->
     lists:foreach(
         fun(ConsumerPid) ->
-            io:format("Notifying subscriber ~p with item ~p~n", [ConsumerPid, Item]),
+            io:format("[~p] - Notifying subscriber ~p with item ~p~n", [calendar:local_time(), ConsumerPid, Item]),
             gen_server:cast(ConsumerPid, {consume, Item})
         end,
         Subscribers).

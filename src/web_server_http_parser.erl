@@ -47,7 +47,7 @@ code_change(_OldVsn, State, _Extra) ->
 process_request(Data, Connection) ->
     io:format("[~p] - Processing request...", [calendar:local_time()]),
     {Method, Path, Headers} = parse_request(Data),
-    io:format("[~p] - Method: ~p | Path: ~p ", [calendar:local_time(), Method, Path]),
+    io:format("[~p] - Method: ~p | Path: ~p ~n", [calendar:local_time(), Method, Path]),
     Authenticated = check_authentication(Headers),
     case handle_path(Path, Authenticated) of
         {ok, Content, ContentType} ->
@@ -107,7 +107,9 @@ check_authentication(Headers) ->
 handle_path("/RESTRITO", false) ->
     {error, unauthorized};
 handle_path(Path, _) ->
-    case file:read_file("." ++ Path) of
+    io:format("Try to read file in path ~p ~n", [Path]),
+    FilePath = "/Users/fernandoareias/Documents/dev/web-server-erl/http" ++ binary_to_list(Path),
+    case file:read_file(FilePath) of
         {ok, Content} ->
             {ok, Content, content_type(Path)};
         {error, _} ->
@@ -133,15 +135,22 @@ send_response(Connection, Status, ContentType, Body) ->
     ],
 
     Response = list_to_binary([Headers, BinaryBody]),
-    io:format("Sending response body ~p ~n", [BinaryBody]),
+    io:format("Sending response body ~p ~p ~n", [BinaryBody, Headers]),
     gen_tcp:send(Connection, Response).
 
 content_type(Path) ->
-    case filename:extension(Path) of
+    StringPath = binary_to_list(Path),
+    FileExtension = filename:extension(StringPath),
+    io:format("Path informado ~p e extensao detectada ~p ~n", [Path, FileExtension]),
+    case FileExtension of
         ".html" -> "text/html";
-        ".jpg" -> "image/jpeg";
-        ".gif" -> "image/gif";
-        _ -> "application/octet-stream"
+        ".css"  -> "text/css";   
+        ".js"   -> "application/javascript"; 
+        ".jpg"  -> "image/jpeg";
+        ".jpeg" -> "image/jpeg";
+        ".png"  -> "image/png";  
+        ".gif"  -> "image/gif";
+        _       -> "text/plain"  
     end.
 
 not_found_response() ->

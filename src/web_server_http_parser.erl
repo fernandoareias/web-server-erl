@@ -10,14 +10,14 @@
 -define(AUTH_CREDENTIALS, "admin:admin").
 
 start_link() ->
-    io:format("[~p] - Starting HTTP parser...~n", [calendar:local_time()]),
+    io:format("[+][~p] - Starting HTTP parser...~n", [calendar:local_time()]),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 stop() -> 
     gen_server:stop(?MODULE).   
 
 init(_Args) -> 
-    io:format("[~p] - Request message consumer...~n", [calendar:local_time()]),
+    io:format("[+][~p] - Request message consumer...~n", [calendar:local_time()]),
     gen_server:cast(web_server_request_queue, {subscribe, self()}),
     {ok, []}.
 
@@ -25,16 +25,16 @@ handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
 handle_cast({consume, {Data, Connection}}, State) ->    
-    io:format("[~p] - Consumed message: ~p from connection ~p~n", [calendar:local_time(), Data, Connection]),
+    % io:format("[~p] - Consumed message: ~p from connection ~p~n", [calendar:local_time(), Data, Connection]),
     process_request(Data, Connection),
     {noreply, State};
 
 handle_cast(_UnknownMessage, State) ->
-    io:format("[~p] - Unknown message in HTTP parser: ~p~n", [calendar:local_time(), _UnknownMessage]),
+    io:format("[+][~p] - Unknown message in HTTP parser: ~p~n", [calendar:local_time(), _UnknownMessage]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
-    io:format("[~p] - HTTP parser terminated.~n", [calendar:local_time()]),
+    io:format("[+][~p] - HTTP parser terminated.~n", [calendar:local_time()]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -45,9 +45,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 process_request(Data, Connection) ->
-    io:format("[~p] - Processing request...", [calendar:local_time()]),
+    io:format("[+][~p] - Processing request...~n", [calendar:local_time()]),
     {Method, Path, Headers} = parse_request(Data),
-    io:format("[~p] - Method: ~p | Path: ~p ~n", [calendar:local_time(), Method, Path]),
+    io:format("[+][~p] - Method: ~p | Path: ~p ~n", [calendar:local_time(), Method, Path]),
     Authenticated = check_authentication(Headers),
     case handle_path(Path, Authenticated) of
         {ok, Content, ContentType} ->
@@ -79,7 +79,9 @@ parse_request(Data) ->
 parse_request_line(RequestLine) ->
     case string:split(RequestLine, " ", all) of
         [Method, Path | _] -> {Method, Path};
-        _ -> {error, "/"}
+        _ -> 
+            io:format("[-][~p] - Error parse request line ~n", [calendar:local_time()]),
+            {error, "/"}
     end.
         
 
@@ -89,7 +91,7 @@ parse_headers(Lines) ->
             [Key, Value] ->
                 [{binary_to_list(Key), binary_to_list(Value)} | Acc];
             _ ->
-                io:format("[~p] - Ignoring invalid header line: ~p~n", [calendar:local_time(), Line]),
+                io:format("[+][~p] - Ignoring invalid header line: ~p~n", [calendar:local_time(), Line]),
                 Acc
         end
     end, [], Lines).
@@ -107,7 +109,7 @@ check_authentication(Headers) ->
 handle_path("/RESTRITO", false) ->
     {error, unauthorized};
 handle_path(Path, _) ->
-    io:format("Try to read file in path ~p ~n", [Path]),
+    io:format("[+][~p] - Try to read file in path ~p ~n", [calendar:local_time(), Path]),
     FilePath = "/Users/fernandoareias/Documents/dev/web-server-erl/http" ++ binary_to_list(Path),
     case file:read_file(FilePath) of
         {ok, Content} ->
@@ -117,8 +119,8 @@ handle_path(Path, _) ->
     end.
 send_response(Connection, Status, ContentType, Body) ->
     {{Year, Month, Day}, {Hour, Minute, Second}} = erlang:universaltime(),
-    Date = io_lib:format("~s, ~2..0w ~s ~4..0w ~2..0w:~2..0w:~2..0w GMT",
-                            [day_of_week(Year, Month, Day), Day, month(Month), Year, Hour, Minute, Second]),
+    Date = io_lib:format("[+][~p] - ~s, ~2..0w ~s ~4..0w ~2..0w:~2..0w:~2..0w GMT",
+                            [calendar:local_time(), day_of_week(Year, Month, Day), Day, month(Month), Year, Hour, Minute, Second]),
 
     BinaryBody = iolist_to_binary(Body),
 
@@ -133,15 +135,13 @@ send_response(Connection, Status, ContentType, Body) ->
         "Connection: close", ?CRLF,
         ?CRLF
     ],
-
+    io:format("[*][~p] - Conection ~p | Status response ~p ~n", [calendar:local_time(), Connection, Status]),
     Response = list_to_binary([Headers, BinaryBody]),
-    io:format("Sending response body ~p ~p ~n", [BinaryBody, Headers]),
     gen_tcp:send(Connection, Response).
 
 content_type(Path) ->
     StringPath = binary_to_list(Path),
     FileExtension = filename:extension(StringPath),
-    io:format("Path informado ~p e extensao detectada ~p ~n", [Path, FileExtension]),
     case FileExtension of
         ".html" -> "text/html";
         ".css"  -> "text/css";   

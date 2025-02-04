@@ -11,7 +11,7 @@
 }).
 
 start_link() ->    
-    io:format("Starting request queue FSM...~n"),
+    io:format("[+][~p] - Starting request queue~n", [calendar:local_time()]),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 stop() ->
@@ -23,27 +23,27 @@ init(_Args) ->
 
 %% Inscrição de consumidores
 handle_cast({subscribe, ConsumerPid}, State) ->
-    io:format("Subscriber added: ~p~n", [ConsumerPid]),
+    io:format("[+][~p] - Subscriber added: ~p~n", [calendar:local_time(), ConsumerPid]),
     UpdatedSubscribers = lists:usort([ConsumerPid | State#state.subscribers]),
     {noreply, State#state{subscribers = UpdatedSubscribers}};
 
 %% Cancelamento de inscrição (opcional)
 handle_cast({unsubscribe, ConsumerPid}, State) ->
-    io:format("Subscriber removed: ~p~n", [ConsumerPid]),
+    io:format("[+][~p] - Subscriber removed: ~p~n", [calendar:local_time(), ConsumerPid]),
     UpdatedSubscribers = lists:delete(ConsumerPid, State#state.subscribers),
     {noreply, State#state{subscribers = UpdatedSubscribers}};
 
 %% Mensagem recebida
 handle_cast({request_message, Data, Connection}, State) ->
-    io:format("Receiving a request message...~n"),
-    io:format("Message received: Data=~p | Connection=~p~n", [Data, Connection]),
+    io:format("[+][~p] - Receiving a request message...~n", [calendar:local_time()]),
+    % io:format("Message received: Data=~p | Connection=~p~n", [Data, Connection]),
     UpdatedState = add_queue(State, {Data, Connection}),
     notify_subscribers({Data, Connection}, UpdatedState#state.subscribers),
     {noreply, UpdatedState};
 
 %% Mensagem desconhecida
 handle_cast(_UnknownMessage, State) ->
-    io:format("Mensagem desconhecida recebida: ~p~n", [_UnknownMessage]),
+    io:format("[+][~p] - Mensagem desconhecida recebida: ~p~n", [calendar:local_time(), _UnknownMessage]),
     {noreply, State}.
 
 handle_call(_Request, _From, State) ->
@@ -55,7 +55,7 @@ handle_call(_Request, _From, State) ->
 %%%===================================================================
 
 add_queue(State, Item) ->
-    io:format("[~p] - Adding message to queue: ~p~n", [calendar:local_time(), Item]),
+    % io:format("[~p] - Adding message to queue: ~p~n", [calendar:local_time(), Item]),
     NewQueue = queue:in(Item, State#state.queue),
     NewSize = State#state.size + 1,
     State#state{queue = NewQueue, size = NewSize}.
@@ -63,7 +63,7 @@ add_queue(State, Item) ->
 notify_subscribers(Item, Subscribers) ->
     lists:foreach(
         fun(ConsumerPid) ->
-            io:format("[~p] - Notifying subscriber ~p with item ~p~n", [calendar:local_time(), ConsumerPid, Item]),
+            % io:format("[~p] - Notifying subscriber ~p with item ~p~n", [calendar:local_time(), ConsumerPid, Item]),
             gen_server:cast(ConsumerPid, {consume, Item})
         end,
         Subscribers).

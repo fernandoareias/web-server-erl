@@ -17,43 +17,45 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 stop() ->
-    io:format("[~p] - Stopping web server...~n", [calendar:local_time()]),
+    io:format("[+][~p] - Stopping web server...~n", [calendar:local_time()]),
     gen_server:stop(?SERVER).
 
 init([]) ->
-    io:format("[~p] - Web server request processor listening in port ~p ...~n", [calendar:local_time(), ?PORT]),
+    io:format("[+][~p] - Web server request processor listening in port ~p ...~n", [calendar:local_time(), ?PORT]),
     Result = gen_tcp:listen(?PORT, [{active, true}, binary]),
     start_request_consumer(Result).
 
 start_request_consumer({ok, ListenSocket}) when is_port(ListenSocket) -> 
-    io:format("[~p] - Web server accepts messages now!~n", [calendar:local_time()]),
+    io:format("[+][~p] - Web server accepts messages now!~n", [calendar:local_time()]),
     loop(ListenSocket);
 
 start_request_consumer({error, Reason}) when Reason =:= eaddrinuse ->
-    io:format("[~p] - Error: port already in use~n", [calendar:local_time()]);
+    io:format("[+][~p] - Error: port already in use~n", [calendar:local_time()]);
 
 start_request_consumer({error, Reason}) when is_atom(Reason) ->
-    io:format("[~p] - Error starting web server: ~p~n", [calendar:local_time(), Reason]),
+    io:format("[+][~p] - Error starting web server: ~p~n", [calendar:local_time(), Reason]),
     error;
 
 start_request_consumer(_) ->
-    io:format("[~p] - Unhandled error while starting web server~n", [calendar:local_time()]),
+    io:format("[+][~p] - Unhandled error while starting web server~n", [calendar:local_time()]),
     error.
 
 loop(ListenSocket) ->
     {ok, AcceptSocket} = gen_tcp:accept(ListenSocket),
-    io:format("[~p] - Connection accepted: ~p ~n", [calendar:local_time(), AcceptSocket]),
+    io:format("[+][~p] - Connection accepted: ~p ~n", [calendar:local_time(), AcceptSocket]),
     receive
         {tcp, AcceptSocket, Data} ->
-            io:format("[~p] - Received message: ~s~n", [calendar:local_time(), Data]),
-            io:format("[~p] - Send data to event queue~n~n", [calendar:local_time()]),
+            io:format("[+][~p] - Received message: ~s~n", [calendar:local_time(), Data]),
+            io:format("[+][~p] - Send data to event queue~n~n", [calendar:local_time()]),
+            gen_server:cast(metrics, {increment, open_connections}),
             gen_server:cast(web_server_request_queue, {request_message, Data, AcceptSocket}),
             loop(ListenSocket);
         {tcp_closed, AcceptSocket} ->
-            io:format("[~p] - Connection closed: ~p~n", [calendar:local_time(), AcceptSocket]),
+            io:format("[+][~p] - Connection closed: ~p~n", [calendar:local_time(), AcceptSocket]),
             loop(ListenSocket);
         {tcp_error, AcceptSocket, Reason} ->
-            io:format("[~p] - Connection error: ~p~n", [calendar:local_time(), Reason]),
+            io:format("[-][~p] - Connection error: ~p~n", [calendar:local_time(), Reason]),
+            gen_server:cast(metrics, {increment, error_requests}),
             loop(ListenSocket)
     end.
 

@@ -5,14 +5,22 @@
 -export([start_link/0, init/1]).
 
 start_link() ->
-    io:fwrite("Starting supervisor...~n"),
+    io:format("[+][~p] - Starting supervisor...~n", [calendar:local_time()]),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
     SupFlags = #{strategy => rest_for_one, intensity => 100, period => 3600},
     ChildSpecs = [
         #{
-            id => request_queue,
+            id => metrics, % E um topic, tenho que atualizar o nome kkkkk
+            start => {metrics, start_link, []},
+            restart => permanent,
+            shutdown => 5000,
+            type => worker,
+            modules => [metrics]
+        },
+        #{
+            id => request_queue, % E um topic, tenho que atualizar o nome kkkkk
             start => {web_server_request_queue, start_link, []},
             restart => permanent,
             shutdown => 5000,

@@ -9,10 +9,10 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    SupFlags = #{strategy => rest_for_one, intensity => 100, period => 3600},
+    SupFlags = #{strategy => one_for_one, intensity => 100, period => 3600},
     ChildSpecs = [
         #{
-            id => metrics, % E um topic, tenho que atualizar o nome kkkkk
+            id => metrics, 
             start => {metrics, start_link, []},
             restart => permanent,
             shutdown => 5000,
@@ -30,11 +30,10 @@ init([]) ->
         #{
             id => http_parser,
             start => {web_server_http_parser, start_link, []},
-            restart => permanent,
             shutdown => 5000,
             type => worker,
             modules => [web_server_http_parser]
-        },    
+        },     
         #{
             id => request_processor,
             start => {web_server_request_listener, start_link, []},

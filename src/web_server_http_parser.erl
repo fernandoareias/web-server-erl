@@ -59,8 +59,8 @@ process_request(Data, Connection) ->
             send_response(Connection, "404 Not Found", 
                           "text/html", not_found_response())
     end,
-    io:format("[+][~p] - Terminou de processar ~n", [calendar:local_time()]),
     gen_server:cast(metrics, {close_connection}),
+    io:format("[+][~p] - Connection closed ~n", [calendar:local_time()]),
     gen_tcp:close(Connection).
 
 parse_request(Data) ->

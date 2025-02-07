@@ -112,12 +112,23 @@ handle_path("/RESTRITO", false) ->
     {error, unauthorized};
 handle_path(Path, _) ->
     io:format("[+][~p] - Try to read file in path ~p ~n", [calendar:local_time(), Path]),
-    FilePath = "/Users/fernandoareias/Documents/dev/web-server-erl/http" ++ binary_to_list(Path),
-    case file:read_file(FilePath) of
-        {ok, Content} ->
-            {ok, Content, content_type(Path)};
-        {error, _} ->
-            {error, not_found}
+    
+    case web_server_http_cache:get(Path) of
+        not_found ->
+            FilePath = "/Users/fernandoareias/Documents/dev/web-server-erl/http" ++ binary_to_list(Path),
+            io:format("[+][~p] - Cache miss. Reading file from disk: ~p~n", [calendar:local_time(), FilePath]),
+            case file:read_file(FilePath) of
+                {ok, Content} ->
+                    io:format("[+][~p] - Sending file to cache, path: ~p~n", [calendar:local_time(), Path]),
+                    web_server_http_cache:put(Path, Content),
+                    
+                    {ok, Content, content_type(Path)};
+                {error, _} ->
+                    {error, not_found}
+            end;
+        CachedContent ->
+            io:format("[+][~p] - Cache hit for path: ~p~n", [calendar:local_time(), Path]),
+            {ok, CachedContent, content_type(Path)}
     end.
 send_response(Connection, Status, ContentType, Body) ->
     {{Year, Month, Day}, {Hour, Minute, Second}} = erlang:universaltime(),

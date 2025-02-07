@@ -20,6 +20,22 @@ init([]) ->
             modules => [metrics]
         },
         #{
+            id => http_cachex, 
+            start => {web_server_http_cache, start_link, []},
+            restart => permanent,
+            shutdown => 5000,
+            type => worker,
+            modules => [web_server_http_cache]
+        },
+        #{
+            id => http_log, 
+            start => {web_server_log, start_link, []},
+            restart => permanent,
+            shutdown => 5000,
+            type => worker,
+            modules => [web_server_log]
+        },
+        #{
             id => request_queue, % E um topic, tenho que atualizar o nome kkkkk
             start => {web_server_request_queue, start_link, []},
             restart => permanent,
@@ -41,7 +57,7 @@ init([]) ->
             shutdown => 5000,
             type => worker,
             modules => [web_server_request_listener]
-        }
+        } 
         
     ],
     {ok, {SupFlags, ChildSpecs}}.

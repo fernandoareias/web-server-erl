@@ -112,7 +112,7 @@ handle_path("/RESTRITO", false) ->
     {error, unauthorized};
 handle_path(Path, _) ->
     io:format("[+][~p] - Try to read file in path ~p ~n", [calendar:local_time(), Path]),
-    FilePath = "/Users/fernandoareias/Documents/dev/web-server-erl/http" ++ binary_to_list(Path),
+    FilePath = "./http" ++ binary_to_list(Path),
     case file:read_file(FilePath) of
         {ok, Content} ->
             {ok, Content, content_type(Path)};

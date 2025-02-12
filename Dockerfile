@@ -19,6 +19,7 @@ RUN apk add --no-cache openssl && \
 
 # Copy the release from the build stage
 COPY --from=build /buildroot/_build/prod/rel/web_server_erl /web_server_erl
+COPY ./http /web_server_erl/http
 
 # Expose the relevant ports
 EXPOSE 8091

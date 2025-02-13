@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "rebar3 compile",          // Nome da tarefa
+            "type": "shell",                    // Tipo de tarefa (executa no shell)
+            "command": "rebar3 compile",        // Comando a ser executado
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },                   // Define esta tarefa como parte do grupo "build"
+            "problemMatcher": "$erlang" 
+        }
+    ]
+}

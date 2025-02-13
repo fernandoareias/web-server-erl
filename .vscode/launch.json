@@ -6,8 +6,12 @@
             "request": "launch",
             "name": "Debug Erlang",
             "cwd": "${workspaceFolder}",
-            "startmodule": "web_server_request_listener",
-            "args": []
+            "startmodule": "web_server_erl_app",  // Módulo inicial
+            "args": [],                           // Argumentos para start/2
+            "env": {},                            // Variáveis de ambiente
+            "stopOnEntry": false,
+            "console": "integratedTerminal",
+            "preLaunchTask": "rebar3 compile"     // Executa a tarefa antes de iniciar o depurador
         }
     ]
 }

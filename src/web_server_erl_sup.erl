@@ -20,28 +20,56 @@ init([]) ->
             modules => [metrics]
         },
         #{
-            id => request_queue, % E um topic, tenho que atualizar o nome kkkkk
-            start => {web_server_request_queue, start_link, []},
+            id => http_parser_queue,  
+            start => {queue_processor, start_link, [http_parser_queue]},
             restart => permanent,
             shutdown => 5000,
             type => worker,
-            modules => [web_server_request_queue]
+            modules => [queue_processor]
         },
         #{
             id => http_parser,
-            start => {web_server_http_parser, start_link, []},
+            start => {web_server_http_parser, start_link, [processor1]},
+            shutdown => 5000,
+            type => worker,
+            modules => [web_server_http_parser]
+        },    
+        #{
+            id => http_parser2,
+            start => {web_server_http_parser, start_link, [processor2]},
+            shutdown => 5000,
+            type => worker,
+            modules => [web_server_http_parser]
+        },   
+        #{
+            id => http_parser3,
+            start => {web_server_http_parser, start_link, [processor3]},
+            shutdown => 5000,
+            type => worker,
+            modules => [web_server_http_parser]
+        },   
+        #{
+            id => http_parser4,
+            start => {web_server_http_parser, start_link, [processor4]},
+            shutdown => 5000,
+            type => worker,
+            modules => [web_server_http_parser]
+        }, 
+        #{
+            id => http_parser5,
+            start => {web_server_http_parser, start_link, [processor5]},
             shutdown => 5000,
             type => worker,
             modules => [web_server_http_parser]
         },     
         #{
-            id => request_processor,
+            id => request_listener,
             start => {web_server_request_listener, start_link, []},
             restart => permanent,
             shutdown => 5000,
             type => worker,
             modules => [web_server_request_listener]
-        }
+        } 
         
     ],
     {ok, {SupFlags, ChildSpecs}}.

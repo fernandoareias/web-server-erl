@@ -9,7 +9,8 @@
 -export([init/2]). 
 -export([init/1, handle_call/3, handle_cast/2]).
 -define(SERVER, ?MODULE).
--define(PORT, 8091).
+-define(PORT, 8092).
+
 
 init(_GroupId, _Arg) -> {ok, []}.
 
@@ -48,7 +49,7 @@ loop(ListenSocket) ->
             io:format("[+][~p] - Received message: ~s~n", [calendar:local_time(), Data]),
             io:format("[+][~p] - Send data to event queue~n~n", [calendar:local_time()]),
             gen_server:cast(metrics, {open_connection}),
-            gen_server:cast(web_server_request_queue, {request_message, Data, AcceptSocket}),
+            gen_server:cast(http_parser_queue, {enqueue, Data, AcceptSocket}),
             loop(ListenSocket);
         {tcp_closed, AcceptSocket} ->
             io:format("[+][~p] - Connection closed: ~p~n", [calendar:local_time(), AcceptSocket]),
@@ -57,7 +58,6 @@ loop(ListenSocket) ->
         {tcp_error, AcceptSocket, Reason} ->
             io:format("[-][~p] - Connection error: ~p~n", [calendar:local_time(), Reason]),
             gen_server:cast(metrics, {close_connection}),
-            % gen_server:cast(metrics, {increment, error_requests}),
             loop(ListenSocket)
     end.
 

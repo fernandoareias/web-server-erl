@@ -48,12 +48,13 @@ read(Path, Connection) ->
 read_file(Path, Connection) -> 
     io:format("[+][~p] - Reading file: ~p~n", [calendar:local_time(), Path]),
     FilePath = "./http" ++ binary_to_list(Path),
-    handle_read(file:read_file(FilePath), content_type(Path), Connection).
+    handle_read(file:read_file(FilePath), content_type(Path), Path, Connection).
 
-handle_read({ok, Content}, ContentType, Connection) -> 
+handle_read({ok, Content}, ContentType, Path, Connection) -> 
     io:format("[+][~p] - File read success~n", [calendar:local_time()]),
+    web_server_http_cache:set(Path, ContentType, Content),
     web_server_http_socket_writer:write_success_ok(Connection, ContentType, Content);
-handle_read({error, _}, _, Connection) ->     
+handle_read({error, _}, _, _, Connection) ->     
     io:format("[-][~p] - File not found~n", [calendar:local_time()]),
     web_server_http_socket_writer:write_not_found(Connection).
 

@@ -11,23 +11,22 @@ start_link() ->
 init([]) ->
     SupFlags = #{strategy => one_for_one, intensity => 100, period => 3600},
     ChildSpecs = [
-        #{
-            id => metrics, 
+        #{  id => metrics,
             start => {metrics, start_link, []},
             restart => permanent,
             shutdown => 5000,
             type => worker,
             modules => [metrics]
         },
-        #{
-            id => http_parser,
+        #{  id => http_parser,
             start => {web_server_http_parser, start_link, []},
+            restart => permanent,
             shutdown => 5000,
             type => worker,
             modules => [web_server_http_parser]
-        },     
+        },
         #{
-            id => request_processor,
+            id => http_listener,
             start => {web_server_request_listener, start_link, []},
             restart => permanent,
             shutdown => 5000,
@@ -35,20 +34,12 @@ init([]) ->
             modules => [web_server_request_listener]
         },
         #{
-            id => http_get,
-            start => {web_server_http_get, start_link, []},
+            id => socket_writer,
+            start => {web_server_http_socket_writer, start_link, []},
             restart => permanent,
             shutdown => 5000,
             type => worker,
-            modules => [web_server_http_get]
-        },
-        #{
-            id => http_cache,
-            start => {web_server_http_cache, start_link, []},
-            restart => permanent,
-            shutdown => 5000,
-            type => worker,
-            modules => [web_server_http_cache]
+            modules => [web_server_http_socket_writer]
         },
         #{
             id => http_io,
@@ -59,13 +50,22 @@ init([]) ->
             modules => [web_server_http_io]
         },
         #{
-            id => socket_writer,
-            start => {web_server_http_socket_writer, start_link, []},
+            id => http_cache,
+            start => {web_server_http_cache, start_link, []},
             restart => permanent,
             shutdown => 5000,
             type => worker,
-            modules => [web_server_http_socket_writer]
-        }        
+            modules => [web_server_http_cache]
+        },
+        #{
+            id => http_get,
+            start => {web_server_http_get, start_link, []},
+            restart => permanent,
+            shutdown => 5000,
+            type => worker,
+            modules => [web_server_http_get]
+        }
     ],
     io:format("[+][~p] - Supervisor initialized with ~p child processes~n", [calendar:local_time(), length(ChildSpecs)]),
+    io:format("[+][~p] - Child specs: ~p~n", [calendar:local_time(), ChildSpecs]),
     {ok, {SupFlags, ChildSpecs}}.

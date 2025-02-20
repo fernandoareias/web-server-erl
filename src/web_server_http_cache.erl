@@ -1,7 +1,6 @@
 -module(web_server_http_cache).
 -behaviour(gen_server).
-
-%% API
+ 
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([get/1, set/3]).
@@ -24,8 +23,10 @@ init(_Args) ->
 handle_call({get_cache, Key}, _From, State = #cache_map{map = Map}) ->
     case maps:find(Key, Map) of
         {ok, {ContentType, Data}} -> 
+            io:format("[+][~p] - Cache hit for key: ~p~n", [calendar:local_time(), Key]),
             {reply, {ok, {ContentType, Data}}, State};
         error -> 
+            io:format("[+][~p] - Cache miss for key: ~p~n", [calendar:local_time(), Key]),
             {reply, {error, not_found}, State}
     end;
 

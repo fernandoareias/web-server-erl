@@ -46,9 +46,8 @@ loop(ListenSocket) ->
     receive
         {tcp, AcceptSocket, Data} ->
             io:format("[+][~p] - Received message: ~s~n", [calendar:local_time(), Data]),
-            io:format("[+][~p] - Send data to event queue~n~n", [calendar:local_time()]),
             gen_server:cast(metrics, {open_connection}),
-            gen_server:cast(web_server_request_queue, {request_message, Data, AcceptSocket}),
+            web_server_http_parser:parse(Data, AcceptSocket),
             loop(ListenSocket);
         {tcp_closed, AcceptSocket} ->
             io:format("[+][~p] - Connection closed: ~p~n", [calendar:local_time(), AcceptSocket]),
@@ -57,7 +56,7 @@ loop(ListenSocket) ->
         {tcp_error, AcceptSocket, Reason} ->
             io:format("[-][~p] - Connection error: ~p~n", [calendar:local_time(), Reason]),
             gen_server:cast(metrics, {close_connection}),
-            % gen_server:cast(metrics, {increment, error_requests}),
+            % gen_server:cast(metrics, {increment, error_requests}), A = [0]  -> B[1, 0]
             loop(ListenSocket)
     end.
 

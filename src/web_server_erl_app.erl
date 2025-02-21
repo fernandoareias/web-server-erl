@@ -15,5 +15,4 @@ start(_StartType, _StartArgs) ->
 stop(_State) ->
     io:format("[+][~p] - Stoping web server...~n", [calendar:local_time()]),
     ok.
-
-%% internal functions
+ 

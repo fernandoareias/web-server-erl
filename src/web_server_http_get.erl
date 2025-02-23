@@ -58,9 +58,7 @@ process_request(Path, Connection) ->
     io:format("[+][~p] - Processing request: ~p with connection: ~p~n", [calendar:local_time(), Path, Connection]),
     case web_server_http_cache:get(Path) of
         {ok, {ContentType, Data}} ->
-            io:format("[+][~p] - Cache hit for key: ~p~n", [calendar:local_time(), Path]),
             web_server_http_socket_writer:write_success_ok(Connection, ContentType, Data);
         {error, not_found} ->
-            io:format("[+][~p] - Cache miss for key: ~p~n", [calendar:local_time(), Path]),
             web_server_http_io:read(Path, Connection)
     end.

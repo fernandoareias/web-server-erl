@@ -2,7 +2,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/0, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([write_success_ok/3, write_not_found/1, write_unauthorized/1, write_method_not_allowed/1, write_internal_server_error/1]).
 
@@ -18,11 +18,13 @@ start_link() ->
     io:format("[+][~p] - Starting Socket Writer...~n", [calendar:local_time()]),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
+stop() -> 
+    gen_server:stop(?MODULE).   
+
 init(_Args) ->
+    io:format("[+][~p] - Initing Socket Writer...~n", [calendar:local_time()]),
     {ok, []}.
 
-handle_call(stop, _From, State) ->
-    {stop, normal, stopped, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
@@ -48,6 +50,7 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State) ->
+    io:format("[+][~p] - HTTP parser terminated.~n", [calendar:local_time()]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->

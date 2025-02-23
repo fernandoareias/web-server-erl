@@ -6,7 +6,7 @@
 -record(state, {}).
 
 start_link() ->
-    io:format("[+][~p] - Startig metrics processor~n", [calendar:local_time()]),
+    io:format("[+][~p] - Starting metrics processor~n", [calendar:local_time()]),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 increment_metric(Key) ->

@@ -60,12 +60,17 @@ init([]) ->
             modules => [web_server_http_get]
         },
         #{
-            id => web_server_request_listener,
-            start => {web_server_request_listener, start_link, []},
+            id => web_server_tcp_listener,
+            start => {web_server_tcp_listener, start_link,
+                    [{local, http_server},  %% Name
+                    web_server_tcp_acceptor,          %% Module -- acceptor
+                    [{port, 8091}],                   %% Args -- porta de escuta
+                    []                                %% Opts -- geralmente não usado
+                    ]},
             restart => permanent,
             shutdown => 5000,
             type => worker,
-            modules => [web_server_request_listener]
+            modules => [web_server_tcp_listener]
         }
         
     ],

@@ -196,14 +196,30 @@ handle_info({inet_async, ListenSocket, Ref, {ok, ClientSocket}},
         end,
         ?DEBUGP("handle (hand over) incoming connection~n"),
         io:format("[+][~p] - Starting new acceptor process under supervisor ~p...~n", [calendar:local_time(), ServerRef]),
-        {ok, Pid} = web_server_tcp_listener_sup:start_acceptor(ServerRef),
-        io:format("[+][~p] - New acceptor process started with PID: ~p~n", [calendar:local_time(), Pid]),
-        io:format("[+][~p] - Accepting incoming connection on acceptor PID: ~p~n", [calendar:local_time(), Pid]),
-        web_server_tcp_acceptor:accept(Pid, ClientSocket),
-        io:format("[+][~p] - Setting controlling process for ClientSocket to PID: ~p~n", [calendar:local_time(), Pid]),
-        ok = gen_tcp:controlling_process(ClientSocket, Pid),
-        io:format("[+][~p] - Creating asynchronous acceptor for next connection...~n", [calendar:local_time()]),
-        {noreply, create_async_acceptor(State)}
+        case web_server_tcp_listener_sup:start_acceptor(ServerRef) of
+            {ok, Pid} ->
+                io:format("[+][~p] - New acceptor process started with PID: ~p~n", [calendar:local_time(), Pid]),
+                io:format("[+][~p] - Accepting incoming connection on acceptor PID: ~p~n", [calendar:local_time(), Pid]),
+                web_server_tcp_acceptor:accept(Pid, ClientSocket),
+                io:format("[+][~p] - Setting controlling process for ClientSocket to PID: ~p~n", [calendar:local_time(), Pid]),
+                case gen_tcp:controlling_process(ClientSocket, Pid) of
+                    ok ->
+                        io:format("[+][~p] - Creating asynchronous acceptor for next connection...~n", [calendar:local_time()]),
+                        {noreply, create_async_acceptor(State)};
+                    {error, ControllingProcessError} ->
+                        io:format("[-][~p] - Failed to set controlling process: ~p~n", [calendar:local_time(), ControllingProcessError]),
+                        error_logger:error_msg("Failed to set controlling process: ~p.~n", [ControllingProcessError]),
+                        {stop, ControllingProcessError, State}
+                end;
+            {error, StartAcceptorError} ->
+                io:format("[-][~p] - Failed to start acceptor process: ~p~n", [calendar:local_time(), StartAcceptorError]),
+                error_logger:error_msg("Failed to start acceptor process: ~p.~n", [StartAcceptorError]),
+                {stop, StartAcceptorError, State};
+            UnexpectedReturn ->
+                io:format("[-][~p] - Unexpected return from start_acceptor: ~p~n", [calendar:local_time(), UnexpectedReturn]),
+                error_logger:error_msg("Unexpected return from start_acceptor: ~p.~n", [UnexpectedReturn]),
+                {stop, {unexpected_return, UnexpectedReturn}, State}
+        end
     catch
         exit:Error ->
             io:format("[-][~p] - Error in async accept: ~p~n", [calendar:local_time(), Error]),

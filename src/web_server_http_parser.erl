@@ -4,7 +4,7 @@
 
 -export([start_link/0, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3]).
--export([parse/2]).
+-export([parse/3]).
 
 -define(CRLF, "\r\n").
 -define(AUTH_REALM, "RESTRITO").
@@ -29,8 +29,8 @@ init(_Args) ->
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
-handle_cast({request_message, {Data, Connection}}, State) ->        
-    process_request(Data, Connection),
+handle_cast({request_message, {Data, Connection, AcceptorPid}}, State) ->        
+    process_request(Data, Connection, AcceptorPid),
     {noreply, State};
 
 handle_cast(_UnknownMessage, State) ->
@@ -48,31 +48,31 @@ code_change(_OldVsn, State, _Extra) ->
 %% Fim gen_server
 %%%===================================================================
 
-parse(Data, AcceptSocket) -> 
+parse(Data, AcceptSocket, AcceptorPid) -> 
     io:format("[+][~p] - Send data to http parser~n~n", [calendar:local_time()]),
-    gen_server:cast(?MODULE, {request_message, {Data, AcceptSocket}}).
+    gen_server:cast(?MODULE, {request_message, {Data, AcceptSocket, AcceptorPid}}).
 
 %%%===================================================================
 %% Funções privadas
 %%%===================================================================
-process_request(Data, Connection) when is_binary(Data), is_port(Connection) ->
+process_request(Data, Connection, AcceptorPid) when is_binary(Data), is_port(Connection) ->
     io:format("[+][~p] - Processing request...~n", [calendar:local_time()]),
     try
         {Method, Path, Headers} = parse_request(Data),
         io:format("[+][~p] - Method: ~p | Path: ~p ~n", [calendar:local_time(), Method, Path]),
         Authenticated = true,%check_authentication(Headers),
-        route_request(Method, Path, Authenticated, Data, Connection) 
+        route_request(Method, Path, Authenticated, Data, Connection, AcceptorPid) 
     catch
         error:Reason ->
             io:format("[!] Error processing request: ~p~n", [Reason]),            
             gen_tcp:close(Connection)
     end;
-process_request(_InvalidData, _InvalidConnection) ->
+process_request(_InvalidData, _InvalidConnection, _InvalidAcceptorPid) ->
     io:format("[!] Invalid data or connection in process_request~n").
 
-route_request(<<"GET">>, Path, Headers, Data, Connection) ->
+route_request(<<"GET">>, Path, Headers, Data, Connection, AcceptorPid) ->
     io:format("[+][~p] - Send data to GET Process...~n", [calendar:local_time()]),
-    web_server_http_get:handle_request(Path, Connection).
+    web_server_http_get:handle_request(Path, Connection, AcceptorPid).
  
 check_authentication(Headers) ->
     case lists:keyfind("Authorization", 1, Headers) of

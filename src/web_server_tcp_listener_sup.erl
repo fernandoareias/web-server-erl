@@ -114,5 +114,4 @@ start_acceptor({_Registry, Name}) ->
                                      atom_to_list(Name) ++
                                      "_connection_sup"),
     io:format("[+][~p] - Starting child under connection supervisor: ~p~n", [calendar:local_time(), ConnectionSupName]),
-    {ok, _Pid} = supervisor:start_child(ConnectionSupName, []),
-    io:format("[+][~p] - Child started successfully under supervisor: ~p~n", [calendar:local_time(), ConnectionSupName]).
+    {ok, _Pid} = supervisor:start_child(ConnectionSupName, []).

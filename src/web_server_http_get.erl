@@ -4,7 +4,7 @@
 %% API
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([handle_request/2]).
+-export([handle_request/3]).
 
 %%%===================================================================
 %% Inicio gen_server
@@ -23,9 +23,9 @@ handle_call(stop, _From, State) ->
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
-handle_cast({handle_request, {Path, Connection}}, State) ->
+handle_cast({handle_request, {Path, Connection, AcceptorPid}}, State) ->
     io:format("[+][~p] - Handling GET request: ~p~n", [calendar:local_time(), Path]),
-    process_request(Path, Connection),
+    process_request(Path, Connection, AcceptorPid),
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -47,18 +47,18 @@ code_change(_OldVsn, State, _Extra) ->
 %% Interfaces
 %%%===================================================================
 
-handle_request(Path, Connection) ->
-    gen_server:cast(?MODULE, {handle_request, {Path, Connection}}).
+handle_request(Path, Connection, AcceptorPid) ->
+    gen_server:cast(?MODULE, {handle_request, {Path, Connection, AcceptorPid}}).
 
 %%%===================================================================
 %% Funcoes privadas
 %%%===================================================================
 
-process_request(Path, Connection) ->
+process_request(Path, Connection, AcceptorPid) ->
     io:format("[+][~p] - Processing request: ~p with connection: ~p~n", [calendar:local_time(), Path, Connection]),
     case web_server_http_cache:get(Path) of
         {ok, {ContentType, Data}} ->
-            web_server_http_socket_writer:write_success_ok(Connection, ContentType, Data);
+            web_server_http_socket_writer:write_success_ok(Connection, ContentType, Data, AcceptorPid);
         {error, not_found} ->
-            web_server_http_io:read(Path, Connection)
+            web_server_http_io:read(Path, Connection, AcceptorPid)
     end.

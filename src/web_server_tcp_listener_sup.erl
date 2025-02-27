@@ -1,6 +1,5 @@
 -module(web_server_tcp_listener_sup).
 -author('Fernando Areias <nando.calheirosx@gmail.com>').
-
 -behaviour(supervisor).
 -include("web_server_tcp_listener.hrl").
 
@@ -24,11 +23,11 @@
 %% @end
 %% ----------------------------------------------------------------------------
 init(Args) ->
-    io:format("[+][~p] - Initing supervisor tcp listener, args = ~p~n", [calendar:local_time(), Args]),
+    io:format("[+][~p][~p] - Initing supervisor tcp listener, args = ~p~n", [calendar:local_time(), self(), Args]),
     Supervisor =
         proplists:get_value('$tcp_listener_supervisor', Args,
                             web_server_tcp_listener_sup),
-    io:format("[+][~p] - Supervisor type: ~p~n", [calendar:local_time(), Supervisor]),
+    io:format("[+][~p][~p] - Supervisor type: ~p~n", [calendar:local_time(), self(), Supervisor]),
     init(Supervisor, Args).
 
 %% ----------------------------------------------------------------------------
@@ -45,7 +44,7 @@ init(Args) ->
 %% @end
 %% ----------------------------------------------------------------------------
 init(web_server_tcp_listener_sup, Args) ->
-    io:format("[+][~p] - Init/2 supervisor tcp listener...~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - Init/2 supervisor tcp listener...~n", [calendar:local_time(), self()]),
     
     %% Build tcp_listener start arguments
     {Registry, SuppliedName} =
@@ -53,7 +52,7 @@ init(web_server_tcp_listener_sup, Args) ->
     Name = list_to_atom("web_server_tcp_listener_" ++ atom_to_list(SuppliedName)),
     ServerName = {Registry, Name},
     Opts = proplists:get_value('$tcp_listener_opts', Args, []),
-    io:format("[+][~p] - Listener server name: ~p, options: ~p~n", [calendar:local_time(), ServerName, Opts]),
+    io:format("[+][~p][~p] - Listener server name: ~p, options: ~p~n", [calendar:local_time(), self(), ServerName, Opts]),
     
     %% If Name is empty start_link/3 is called, otherwise start_link/4
     ListenerArgs = [ServerName, web_server_tcp_listener, Args, Opts],
@@ -62,8 +61,8 @@ init(web_server_tcp_listener_sup, Args) ->
     ConnectionSupName = list_to_atom("web_server_tcp_listener_" ++
                                      atom_to_list(SuppliedName) ++
                                      "_connection_sup"),
-    io:format("[+][~p] - Listener supervisor name: ~p~n", [calendar:local_time(), ListenerSupName]),
-    io:format("[+][~p] - Connection supervisor name: ~p~n", [calendar:local_time(), ConnectionSupName]),
+    io:format("[+][~p][~p] - Listener supervisor name: ~p~n", [calendar:local_time(), self(), ListenerSupName]),
+    io:format("[+][~p][~p] - Connection supervisor name: ~p~n", [calendar:local_time(), self(), ConnectionSupName]),
     
     {ok, {{one_for_one, ?SUP_MAX_RESTART, ?SUP_MAX_TIME},
           %% TCP listener supervisor
@@ -84,11 +83,10 @@ init(web_server_tcp_listener_sup, Args) ->
             supervisor,
             []}
           ]}};
-
 init(web_server_tcp_listener_connection_sup, Args) ->
     Module = proplists:get_value('$tcp_listener_module', Args),
-    io:format("[+][~p] - Tcp listener connection sup module ~p...~n", [calendar:local_time(), Module]),
-    io:format("[+][~p] - Initializing simple_one_for_one supervisor for connections...~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - Tcp listener connection sup module ~p...~n", [calendar:local_time(), self(), Module]),
+    io:format("[+][~p][~p] - Initializing simple_one_for_one supervisor for connections...~n", [calendar:local_time(), self()]),
     {ok, {{simple_one_for_one, ?SUP_MAX_RESTART, ?SUP_MAX_TIME},
           [{undefined,
             {Module, start_link, []},
@@ -109,9 +107,9 @@ init(web_server_tcp_listener_connection_sup, Args) ->
 %% @end
 %% ----------------------------------------------------------------------------
 start_acceptor({_Registry, Name}) ->
-    io:format("[+][~p] - Start client ~p...~n", [calendar:local_time(), Name]),
+    io:format("[+][~p][~p] - Start client ~p...~n", [calendar:local_time(), self(), Name]),
     ConnectionSupName = list_to_atom("web_server_tcp_listener_" ++
                                      atom_to_list(Name) ++
                                      "_connection_sup"),
-    io:format("[+][~p] - Starting child under connection supervisor: ~p~n", [calendar:local_time(), ConnectionSupName]),
+    io:format("[+][~p][~p] - Starting child under connection supervisor: ~p~n", [calendar:local_time(), self(), ConnectionSupName]),
     {ok, _Pid} = supervisor:start_child(ConnectionSupName, []).

@@ -11,32 +11,38 @@
 %%%===================================================================
 
 start_link() ->
-    io:format("[+][~p] - Starting Get Processor..~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - Starting Get Processor..~n", [calendar:local_time(), self()]),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init(_Args) ->
-    io:format("[+][~p] - Initialize Get Processor..~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - Initialize Get Processor..~n", [calendar:local_time(), self()]),
     {ok, []}.
 
 handle_call(stop, _From, State) ->
+    io:format("[+][~p][~p] - Stopping Get Processor...~n", [calendar:local_time(), self()]),
     {stop, normal, stopped, State};
 handle_call(_Request, _From, State) ->
+    io:format("[-][~p][~p] - Received unknown call: ~p~n", [calendar:local_time(), self(), _Request]),
     {reply, ok, State}.
 
 handle_cast({handle_request, {Path, Connection, AcceptorPid}}, State) ->
-    io:format("[+][~p] - Handling GET request: ~p~n", [calendar:local_time(), Path]),
+    io:format("[+][~p][~p] - Handling GET request: ~p~n", [calendar:local_time(), self(), Path]),
     process_request(Path, Connection, AcceptorPid),
     {noreply, State};
 handle_cast(_Msg, State) ->
+    io:format("[-][~p][~p] - Received unknown cast: ~p~n", [calendar:local_time(), self(), _Msg]),
     {noreply, State}.
 
 handle_info(_Info, State) ->
+    io:format("[-][~p][~p] - Received unknown info: ~p~n", [calendar:local_time(), self(), _Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
+    io:format("[+][~p][~p] - Terminating Get Processor...~n", [calendar:local_time(), self()]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
+    io:format("[+][~p][~p] - Performing code change...~n", [calendar:local_time(), self()]),
     {ok, State}.
 
 %%%===================================================================
@@ -55,10 +61,12 @@ handle_request(Path, Connection, AcceptorPid) ->
 %%%===================================================================
 
 process_request(Path, Connection, AcceptorPid) ->
-    io:format("[+][~p] - Processing request: ~p with connection: ~p~n", [calendar:local_time(), Path, Connection]),
+    io:format("[+][~p][~p] - Processing request: ~p with connection: ~p~n", [calendar:local_time(), self(), Path, Connection]),
     case web_server_http_cache:get(Path) of
         {ok, {ContentType, Data}} ->
+            io:format("[+][~p][~p] - Cache hit for path: ~p~n", [calendar:local_time(), self(), Path]),
             web_server_http_socket_writer:write_success_ok(Connection, ContentType, Data, AcceptorPid);
         {error, not_found} ->
+            io:format("[+][~p][~p] - Cache miss for path: ~p~n", [calendar:local_time(), self(), Path]),
             web_server_http_io:read(Path, Connection, AcceptorPid)
     end.

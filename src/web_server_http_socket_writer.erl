@@ -15,17 +15,18 @@
 %%%===================================================================
 
 start_link() ->
-    io:format("[+][~p] - Starting Socket Writer...~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - Starting Socket Writer...~n", [calendar:local_time(), self()]),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 stop() -> 
     gen_server:stop(?MODULE).   
 
 init(_Args) ->
-    io:format("[+][~p] - Initing Socket Writer...~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - Initing Socket Writer...~n", [calendar:local_time(), self()]),
     {ok, []}.
 
 handle_call(_Request, _From, State) ->
+    io:format("[-][~p][~p] - Received unknown call: ~p~n", [calendar:local_time(), self(), _Request]),
     {reply, ok, State}.
 
 handle_cast({success_ok, {Connection, ContentType, Content, AcceptorPid}}, State) -> 
@@ -44,16 +45,19 @@ handle_cast({internal_server_error, Connection, AcceptorPid}, State) ->
     write_response(Connection, "500 Internal Server Error", "text/html", internal_server_error_response(), AcceptorPid),
     {noreply, State};
 handle_cast(_Msg, State) ->
+    io:format("[-][~p][~p] - Received unknown cast: ~p~n", [calendar:local_time(), self(), _Msg]),
     {noreply, State}.
 
 handle_info(_Info, State) ->
+    io:format("[-][~p][~p] - Received unknown info: ~p~n", [calendar:local_time(), self(), _Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
-    io:format("[+][~p] - HTTP parser terminated.~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - HTTP parser terminated.~n", [calendar:local_time(), self()]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
+    io:format("[+][~p][~p] - Performing code change...~n", [calendar:local_time(), self()]),
     {ok, State}.
 
 %%%===================================================================
@@ -94,19 +98,19 @@ write_response(Connection, Status, ContentType, Body, AcceptorPid) ->
         "Connection: close", ?CRLF,
         ?CRLF
     ],
-    io:format("[*][~p] - Connection ~p | Status response ~p ~n", [calendar:local_time(), Connection, Status]),
+    io:format("[*][~p][~p] - Connection ~p | Status response ~p ~n", [calendar:local_time(), self(), Connection, Status]),
     Response = list_to_binary([Headers, BinaryBody]),
     case gen_tcp:send(Connection, Response) of
         ok ->
-            io:format("[+][~p] - Response sent successfully~n", [calendar:local_time()]);
+            io:format("[+][~p][~p] - Response sent successfully~n", [calendar:local_time(), self()]);
         {error, Reason} ->
-            io:format("[-][~p] - Failed to send response: ~p~n", [calendar:local_time(), Reason])
+            io:format("[-][~p][~p] - Failed to send response: ~p~n", [calendar:local_time(), self(), Reason])
     end,
     gen_server:cast(metrics, {close_connection}),
-    io:format("[+][~p] - Send message connection_closed to process: ~p ~n", [calendar:local_time(), AcceptorPid]),
+    io:format("[+][~p][~p] - Send message connection_closed to process: ~p ~n", [calendar:local_time(), self(), AcceptorPid]),
     AcceptorPid ! {connection_closed, Connection},
     gen_tcp:close(Connection),
-    io:format("[+][~p] - Connection closed~n", [calendar:local_time()]).
+    io:format("[+][~p][~p] - Connection closed~n", [calendar:local_time(), self()]).
 
 not_found_response() ->
     <<"<html><head><title>Not Found</title></head><body>Not Found</body></html>">>.

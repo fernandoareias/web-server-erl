@@ -5,7 +5,7 @@
 -export([start_link/0, init/1]).
 
 start_link() ->
-    io:format("[+][~p] - Starting supervisor...~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - Starting supervisor...~n", [calendar:local_time(), self()]),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
@@ -74,5 +74,5 @@ init([]) ->
         }
         
     ],
-    io:format("[+][~p] - Supervisor initialized with ~p child processes~n", [calendar:local_time(), length(ChildSpecs)]),
+    io:format("[+][~p][~p] - Supervisor initialized with ~p child processes~n", [calendar:local_time(), self(), length(ChildSpecs)]),
     {ok, {SupFlags, ChildSpecs}}.

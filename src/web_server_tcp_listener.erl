@@ -169,7 +169,6 @@ handle_info({inet_async, ListenSocket, Ref, {ok, ClientSocket}},
                                      server_ref = ServerRef}) ->
     io:format("[+][~p][~p] - Received inet_async message with successful connection.~n", [calendar:local_time(), self()]),
     try
-        io:format("[+][~p][~p] - Transferring socket options from ListenSocket to ClientSocket...~n", [calendar:local_time(), self()]),
         case transfer_sockopt(ListenSocket, ClientSocket) of
             ok ->
                 io:format("[+][~p][~p] - Socket options transferred successfully.~n", [calendar:local_time(), self()]);
@@ -186,10 +185,12 @@ handle_info({inet_async, ListenSocket, Ref, {ok, ClientSocket}},
                 io:format("[+][~p][~p] - Setting controlling process for ClientSocket to PID: ~p~n", [calendar:local_time(), self(), Pid]),
                 case gen_tcp:controlling_process(ClientSocket, Pid) of
                     ok ->
-                        io:format("[+][~p][~p] - Creating asynchronous acceptor for next connection...~n", [calendar:local_time(), self()]),
+                        io:format("[+][~p][~p] - Successfully set controlling process for ClientSocket to PID: ~p~n", 
+                                [calendar:local_time(), self(), Pid]),
                         {noreply, create_async_acceptor(State)};
                     {error, ControllingProcessError} ->
-                        io:format("[-][~p][~p] - Failed to set controlling process: ~p~n", [calendar:local_time(), self(), ControllingProcessError]),
+                        io:format("[-][~p][~p] - Failed to set controlling process: ~p~n", 
+                                [calendar:local_time(), self(), ControllingProcessError]),
                         error_logger:error_msg("Failed to set controlling process: ~p.~n", [ControllingProcessError]),
                         {stop, ControllingProcessError, State}
                 end;
@@ -218,7 +219,11 @@ handle_info({inet_async, ListenSocket, Ref, Error},
 handle_info({'EXIT', _Pid, normal}, State) ->
     io:format("[+][~p][~p] - Received normal EXIT signal. Stopping listener gracefully.~n", [calendar:local_time(), self()]),
     {stop, normal, State};
-
+handle_info({tcp, Socket, Data}, State) ->
+    io:format("[-][~p][~p] - Received unexpected TCP message on socket ~p: ~p~n", 
+                [calendar:local_time(), self(), Socket, Data]),
+    error_logger:error_msg("Unexpected TCP message received: ~p.~n", [Data]),
+    {noreply, State};
 handle_info(Info, State) ->
     io:format("[-][~p][~p] - Received unknown message: ~p~n", [calendar:local_time(), self(), Info]),
     {stop, {unknown_info, Info}, State}.

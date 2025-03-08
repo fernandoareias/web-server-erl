@@ -23,16 +23,14 @@
 %% listener defaults
 -define(DEFAULT_PORT, 8000).
 -define(TCP_OPTS, [
-    binary,
-    {packet, raw},
-    {active, false},
-    {reuseaddr, true},
-    {keepalive, true},   
-    {keepalive_idle, 10},   
-    {keepalive_interval, 5},
-    {backlog, 30},
-    {exit_on_close, true},
-    {send_timeout, 5000}   
+    binary,                  % Dados são tratados como binários
+    {packet, raw},           % Sem processamento automático de pacotes
+    {active, false},         % Modo passivo (não envia dados automaticamente ao processo)
+    {reuseaddr, true},       % Permite reutilizar o endereço mesmo se estiver em estado TIME_WAIT
+    {keepalive, true},       % Mantém a conexão ativa usando TCP keepalive
+    {backlog, 128},          % Número máximo de conexões pendentes na fila
+    {exit_on_close, true},   % Encerra o processo quando o socket é fechado
+    {send_timeout, 5000}     % Define um timeout de 5 segundos para operações de envio
 ]).
 
 

@@ -1,5 +1,5 @@
 -module(web_server_erl_sup).
-
+-author('Fernando Areias <nando.calheirosx@gmail.com>').
 -behaviour(supervisor).
 
 -export([start_link/0, init/1]).
@@ -67,7 +67,7 @@ init([]) ->
                     [{port, 8091}],                   %% Args -- porta de escuta
                     []                                %% Opts -- geralmente não usado
                     ]},
-            restart => permanent,
+            restart => temporary,
             shutdown => 5000,
             type => worker,
             modules => [web_server_tcp_listener]

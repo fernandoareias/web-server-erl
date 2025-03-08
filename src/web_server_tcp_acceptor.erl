@@ -112,13 +112,13 @@ State0 = #'$gen_tcp_acceptor_state'{module = _,
                                         client_state = ClientState}) ->    
     io:format("[+][~p][~p] - Handle_cast/2 accept tcp acceptor~n", [calendar:local_time(), self()]),
     State1 = State0#'$gen_tcp_acceptor_state'{client_socket = ClientSocket},
-    inet:setopts(ClientSocket, [{active, once}]),
+    inet:setopts(ClientSocket, [{active, once}]), 
     receive      
         {tcp, _, Data} ->
             io:format("[+][~p][~p] - Received message: ~s~n", [calendar:local_time(), self(), Data]),
             gen_server:cast(metrics, {open_connection}),
             web_server_http_parser:parse(Data, ClientSocket, self()),
-            {noreply, State1#'$gen_tcp_acceptor_state'{client_state = ClientState}};
+            {noreply, State1#'$gen_tcp_acceptor_state'{client_state = ClientState}}; 
         {tcp_error, _, _} ->
             io:format("[-][~p][~p] - Connection closed: ~p~n", [calendar:local_time(), self(), ClientSocket]),
             gen_server:cast(metrics, {close_connection}),
@@ -170,7 +170,7 @@ handle_info({'EXIT', Port, Reason}, State = #'$gen_tcp_acceptor_state'{client_so
     {stop, {socket_closed, Reason}, State};
 handle_info({connection_closed, Port}, State = #'$gen_tcp_acceptor_state'{client_socket = Port}) ->
     io:format("[+][~p][~p] - Connection closed by writer. Stopping acceptor.~n", [calendar:local_time(), self()]),
-    {stop, normal, State};
+    {stop, normal, State}; 
 handle_info(Info, State) ->
     io:format("[-][~p][~p] - Unhandled info: ~p~n", [calendar:local_time(), self(), Info]),
     {stop, {unknown_info, Info}, State}.

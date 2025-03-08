@@ -1,96 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEOQEAV</title>
-    <style>
-        /* Estilo geral da página */
-        body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
-            font-family: 'Arial', sans-serif;
-            overflow: hidden;
-        }
-
-        /* Estilo do coração */
-        .heart {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            background: red;
-            transform: rotate(-45deg);
-            animation: beat 1s infinite;
-        }
-
-        /* Partes do coração */
-        .heart::before,
-        .heart::after {
-            content: '';
-            position: absolute;
-            width: 200px;
-            height: 200px;
-            background: red;
-            border-radius: 50%;
-        }
-
-        .heart::before {
-            top: -100px;
-            left: 0;
-        }
-
-        .heart::after {
-            left: 100px;
-            top: 0;
-        }
-
-        /* Texto no centro do coração */
-        .text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(45deg);
-            color: white;
-            font-size: 2rem;
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-        }
-
-        /* Animação de batimento do coração */
-        @keyframes beat {
-            0%, 100% {
-                transform: scale(1) rotate(-45deg);
-            }
-            50% {
-                transform: scale(1.1) rotate(-45deg);
-            }
-        }
-
-        /* Efeito de brilho no texto */
-        @keyframes glow {
-            0%, 100% {
-                text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-            }
-            50% {
-                text-shadow: 0 0 20px rgba(255, 255, 255, 1);
-            }
-        }
-
-        .text {
-            animation: glow 2s infinite;
-        }
-    </style>
+    <title>Hello World!</title>
 </head>
 <body>
-    <!-- Coração -->
-    <div class="heart">
-        <!-- Texto dentro do coração -->
-        
-    </div>
+    <h1>Hello World!</h1>
+    <h2>ERLANG Web Server</h2>
 </body>
 </html>

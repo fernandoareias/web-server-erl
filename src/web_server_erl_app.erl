@@ -4,7 +4,7 @@
 %%%-------------------------------------------------------------------
 
 -module(web_server_erl_app).
-
+-author('Fernando Areias <nando.calheirosx@gmail.com>').
 -behaviour(application).
 -export([start/2, stop/1]).
 

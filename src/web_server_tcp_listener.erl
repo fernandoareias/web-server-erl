@@ -315,6 +315,7 @@ transfer_sockopt(ListenSocket, ClientSocket) ->
     case prim_inet:getopts(ListenSocket, [active, nodelay, keepalive, delay_send, priority, tos]) of
         {ok, TcpOpts} ->
             io:format("[+][~p][~p] - Retrieved socket options: ~p~n", [calendar:local_time(), self(), TcpOpts]),
+            
             case prim_inet:setopts(ClientSocket, TcpOpts) of
                 ok ->
                     io:format("[+][~p][~p] - Socket options transferred successfully.~n", [calendar:local_time(), self()]),

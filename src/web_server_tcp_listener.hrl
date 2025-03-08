@@ -22,12 +22,18 @@
 
 %% listener defaults
 -define(DEFAULT_PORT, 8000).
--define(TCP_OPTS, [binary,
-                   {packet, raw},
-                   {active, false},
-                   {reuseaddr, true},
-                   {keepalive, true},
-                   {backlog, 30}]).
+-define(TCP_OPTS, [
+    binary,
+    {packet, raw},
+    {active, false},
+    {reuseaddr, true},
+    {keepalive, true},   
+    {keepalive_idle, 10},   
+    {keepalive_interval, 5},
+    {backlog, 30},
+    {exit_on_close, true},
+    {send_timeout, 5000}   
+]).
 
 
 %% listener types

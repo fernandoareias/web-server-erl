@@ -112,17 +112,40 @@ State0 = #'$gen_tcp_acceptor_state'{module = _,
                                         client_state = ClientState}) ->    
     io:format("[+][~p][~p] - Handle_cast/2 accept tcp acceptor~n", [calendar:local_time(), self()]),
     State1 = State0#'$gen_tcp_acceptor_state'{client_socket = ClientSocket},
-    inet:setopts(ClientSocket, [{active, once}]), 
-    receive      
-        {tcp, _, Data} ->
-            io:format("[+][~p][~p] - Received message: ~s~n", [calendar:local_time(), self(), Data]),
-            gen_server:cast(metrics, {open_connection}),
-            web_server_http_parser:parse(Data, ClientSocket, self()),
-            {noreply, State1#'$gen_tcp_acceptor_state'{client_state = ClientState}}; 
-        {tcp_error, _, _} ->
-            io:format("[-][~p][~p] - Connection closed: ~p~n", [calendar:local_time(), self(), ClientSocket]),
+    try
+        case inet:setopts(ClientSocket, [{active, once}]) of
+            ok ->
+                receive      
+                    {tcp, _, Data} ->
+                        io:format("[+][~p][~p] - Received message: ~s~n", [calendar:local_time(), self(), Data]),
+                        gen_server:cast(metrics, {open_connection}),
+                        web_server_http_parser:parse(Data, ClientSocket, self()),
+                        {noreply, State1#'$gen_tcp_acceptor_state'{client_state = ClientState}}; 
+                    {tcp_error, _, Reason} ->
+                        io:format("[-][~p][~p] - TCP error: ~p~n", [calendar:local_time(), self(), Reason]),
+                        gen_server:cast(metrics, {close_connection}),
+                        {stop, {tcp_error, Reason}, State1};
+                    {tcp_closed, _} ->
+                        io:format("[-][~p][~p] - TCP connection closed by peer~n", [calendar:local_time(), self()]),
+                        gen_server:cast(metrics, {close_connection}),
+                        {stop, normal, State1}
+                after 101000 -> % 101 second timeout
+                    io:format("[-][~p][~p] - Connection timeout~n", [calendar:local_time(), self()]),
+                    gen_server:cast(metrics, {close_connection}),
+                    gen_tcp:close(ClientSocket),
+                    {stop, normal, State1}
+                end;
+            {error, SetOptsError} ->
+                io:format("[-][~p][~p] - Failed to set socket options: ~p~n", [calendar:local_time(), self(), SetOptsError]),
+                gen_tcp:close(ClientSocket),
+                {stop, {socket_error, SetOptsError}, State1}
+        end
+    catch
+        _:Error:Stacktrace ->
+            io:format("[-][~p][~p] - Unexpected error: ~p~nStacktrace: ~p~n", [calendar:local_time(), self(), Error, Stacktrace]),
             gen_server:cast(metrics, {close_connection}),
-            {stop, normal, State1} 
+            gen_tcp:close(ClientSocket),
+            {stop, {unexpected_error, Error}, State1}
     end.
 
 %% -----------------------------------------------------------------------------

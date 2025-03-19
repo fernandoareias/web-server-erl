@@ -1,4 +1,4 @@
--module(web_server_erl_sup).
+-module(web_server_sup).
 -author('Fernando Areias <nando.calheirosx@gmail.com>').
 -behaviour(supervisor).
 
@@ -9,6 +9,18 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
+    % Obter porta da configuração usando get_env/2 e então manipular a resposta
+    Port = case application:get_env(web_server, port) of
+        {ok, ConfigPort} -> ConfigPort;
+        undefined -> 8091  % Valor padrão se não estiver configurado
+    end,
+    io:format("[+][~p][~p] - Using port: ~p~n", [calendar:local_time(), self(), Port]),
+    
+    % Log detalhado sobre o ambiente
+    io:format("[+][~p][~p] - DEBUG: Environment variables:~n", [calendar:local_time(), self()]),
+    Env = application:get_all_env(web_server),
+    [io:format("[+][~p][~p] -   ~p: ~p~n", [calendar:local_time(), self(), K, V]) || {K, V} <- Env],
+    
     SupFlags = #{strategy => one_for_one, intensity => 100, period => 3600},
     ChildSpecs = [
         #{
@@ -64,7 +76,7 @@ init([]) ->
             start => {web_server_tcp_listener, start_link,
                     [{local, http_server},  %% Name
                     web_server_tcp_acceptor,          %% Module -- acceptor
-                    [{port, 8091}],                   %% Args -- porta de escuta
+                    [{port, Port}],                   %% Args -- porta de escuta explícita
                     []                                %% Opts -- geralmente não usado
                     ]},
             restart => temporary,

@@ -1,16 +1,42 @@
-# Lista todos os arquivos .erl no diretório src/
-ERL_FILES := $(wildcard src/*.erl)
+.PHONY: all compile clean test shell release run docs check
 
-# Converte os nomes dos arquivos .erl para .beam
-BEAM_FILES := $(ERL_FILES:.erl=.beam)
+all: compile
 
-# Regra principal: compila todos os arquivos .erl
-all: $(BEAM_FILES)
+compile:
+	rebar3 compile
 
-# Regra para compilar arquivos .erl em .beam
-%.beam: %.erl
-	erlc $<
-
-# Regra para limpar os arquivos compilados
 clean:
-	rm -f *.beam src/*.beam
+	rebar3 clean
+	./scripts/clean.sh -a
+
+test:
+	rebar3 eunit
+	rebar3 ct
+
+shell:
+	rebar3 shell
+
+release:
+	./scripts/release.sh -c -t
+
+run: compile
+	rebar3 shell
+
+docs:
+	rebar3 edoc
+
+check:
+	./scripts/check_style.sh
+
+help:
+	@echo "Targets:"
+	@echo "  all       - Compile the project"
+	@echo "  compile   - Compile the project"
+	@echo "  clean     - Clean all generated files"
+	@echo "  test      - Run tests"
+	@echo "  shell     - Start an Erlang shell with the project loaded"
+	@echo "  release   - Create a release"
+	@echo "  run       - Compile and run the project"
+	@echo "  docs      - Generate documentation"
+	@echo "  check     - Check code style"
+	@echo "  help      - Show this help message"

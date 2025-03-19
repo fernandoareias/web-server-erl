@@ -53,15 +53,17 @@ read(Path, Connection, AcceptorPid) ->
 
 read_file(Path, Connection, AcceptorPid) -> 
     io:format("[+][~p][~p] - Reading file: ~p~n", [calendar:local_time(), self(), Path]),
-    FilePath = "./http" ++ binary_to_list(Path),
+    % FilePath = "priv/www" ++ binary_to_list(Path),
+    FilePath = "/Users/fernandoareias/Documents/dev/web-server-erl/apps/web_server/priv/www/index.html",
+    io:format("[+][~p][~p] - Full file path: ~p~n", [calendar:local_time(), self(), FilePath]),
     handle_read(file:read_file(FilePath), content_type(Path), Path, Connection, AcceptorPid).
 
 handle_read({ok, Content}, ContentType, Path, Connection, AcceptorPid) -> 
     io:format("[+][~p][~p] - File read success~n", [calendar:local_time(), self()]),
     web_server_http_cache:set(Path, ContentType, Content),
     web_server_http_socket_writer:write_success_ok(Connection, ContentType, Content, AcceptorPid);
-handle_read({error, _}, _, Path, Connection, AcceptorPid) ->     
-    io:format("[-][~p][~p] - File not found: ~p~n", [calendar:local_time(), self(), Path]),
+handle_read({error, Reason}, _, Path, Connection, AcceptorPid) ->     
+    io:format("[-][~p][~p] - File not found: ~p, Reason: ~p~n", [calendar:local_time(), self(), Path, Reason]),
     web_server_http_socket_writer:write_not_found(Connection, AcceptorPid).
 
 content_type(Path) ->

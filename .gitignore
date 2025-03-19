@@ -1,20 +1,49 @@
+# Erlang-specific
 .rebar3
-_build
-_checkouts
-_vendor
-.eunit
+_build/
+_checkouts/
+.eunit/
 *.o
 *.beam
 *.plt
 *.swp
 *.swo
 .erlang.cookie
-ebin
-log
+ebin/
+log/
+logs/
 erl_crash.dump
-.rebar
-logs
-.idea
-*.iml
+.rebar/
 rebar3.crashdump
+
+# Editor and IDE files
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
 *~
+
+# OS specific
+.DS_Store
+*.tmp
+Thumbs.db
+
+# Application specific
+/priv/static/
+/priv/temp/
+/docs/_build/
+/cover/
+/doc/
+
+# Release artifacts
+/rel/
+/releases/
+
+# Test artifacts
+.test_artifacts/
+.coverage/
+/test-results.xml

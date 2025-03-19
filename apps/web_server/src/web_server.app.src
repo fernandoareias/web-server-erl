@@ -1,8 +1,8 @@
-{application, web_server_erl, [
-    {description, "An OTP application"},
-    {vsn, "0.1.0"},
+{application, web_server, [
+    {description, "An OTP application for a web server"},
+    {vsn, "1.0.0"},
     {registered, []},
-    {mod, {web_server_erl_app, []}},
+    {mod, {web_server_app, []}},
     {applications, [
         kernel,
         stdlib

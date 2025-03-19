@@ -21,7 +21,7 @@
 }).
 
 %% listener defaults
--define(DEFAULT_PORT, 8000).
+-define(DEFAULT_PORT, 8091).
 -define(TCP_OPTS, [
     binary,                  % Dados são tratados como binários
     {packet, raw},           % Sem processamento automático de pacotes

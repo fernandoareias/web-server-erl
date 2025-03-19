@@ -1,6 +1,14 @@
+%%%-------------------------------------------------------------------
+%%% @doc
+%%% Módulo responsável por escrever respostas HTTP no socket.
+%%% @end
+%%%-------------------------------------------------------------------
 -module(web_server_http_socket_writer).
 -behaviour(gen_server).
 -author('Fernando Areias <nando.calheirosx@gmail.com>').
+
+-include("web_server.hrl").
+
 %% API
 -export([start_link/0, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -84,33 +92,65 @@ write_internal_server_error(Connection, AcceptorPid) ->
 %%%===================================================================
 
 write_response(Connection, Status, ContentType, Body, AcceptorPid) ->
-    {{Year, Month, Day}, {Hour, Minute, Second}} = erlang:universaltime(),
-    Date = io_lib:format("~s, ~2..0w ~s ~4..0w ~2..0w:~2..0w:~2..0w GMT",
-                         [day_of_week(Year, Month, Day), Day, month(Month), Year, Hour, Minute, Second]),
-    BinaryBody = iolist_to_binary(Body),
-    ContentLength = integer_to_list(byte_size(BinaryBody)),
-    Headers = [
-        "HTTP/1.1 ", Status, ?CRLF,
-        "Date: ", Date, ?CRLF,
-        "Server: MyErlangServer", ?CRLF,
-        "Content-Type: ", ContentType, ?CRLF,
-        "Content-Length: ", ContentLength, ?CRLF,
-        "Connection: close", ?CRLF,
-        ?CRLF
-    ],
-    io:format("[*][~p][~p] - Connection ~p | Status response ~p ~n", [calendar:local_time(), self(), Connection, Status]),
-    Response = list_to_binary([Headers, BinaryBody]),
-    case gen_tcp:send(Connection, Response) of
-        ok ->
-            io:format("[+][~p][~p] - Response sent successfully~n", [calendar:local_time(), self()]);
-        {error, Reason} ->
-            io:format("[-][~p][~p] - Failed to send response: ~p~n", [calendar:local_time(), self(), Reason])
-    end,
-    gen_server:cast(metrics, {close_connection}),
-    io:format("[+][~p][~p] - Send message connection_closed to process: ~p ~n", [calendar:local_time(), self(), AcceptorPid]),
-    AcceptorPid ! {connection_closed, Connection},
-    gen_tcp:close(Connection),
-    io:format("[+][~p][~p] - Connection closed~n", [calendar:local_time(), self()]).
+    try
+        % Formato da data
+        {{Year, Month, Day}, {Hour, Minute, Second}} = erlang:universaltime(),
+        Days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        DayNum = calendar:day_of_the_week(Year, Month, Day),
+        DayOfWeek = lists:nth(DayNum, Days),
+        
+        Months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        MonthName = lists:nth(Month, Months),
+        
+        Date = io_lib:format("~s, ~2..0w ~s ~4..0w ~2..0w:~2..0w:~2..0w GMT",
+                             [DayOfWeek, Day, MonthName, Year, Hour, Minute, Second]),
+        
+        % Prepara o corpo da resposta
+        BinaryBody = iolist_to_binary(Body),
+        ContentLength = integer_to_list(byte_size(BinaryBody)),
+        
+        % Monta o cabeçalho HTTP
+        Headers = [
+            "HTTP/1.1 ", Status, ?CRLF,
+            "Date: ", Date, ?CRLF,
+            "Server: MyErlangServer", ?CRLF,
+            "Content-Type: ", ContentType, ?CRLF,
+            "Content-Length: ", ContentLength, ?CRLF,
+            "Connection: close", ?CRLF,
+            ?CRLF
+        ],
+        
+        io:format("[*][~p][~p] - Connection ~p | Status response ~p ~n", 
+                 [calendar:local_time(), self(), Connection, Status]),
+        
+        % Construir a resposta completa
+        Response = iolist_to_binary([Headers, BinaryBody]),
+        
+        % Enviar resposta usando gen_tcp diretamente
+        case gen_tcp:send(Connection, Response) of
+            ok ->
+                io:format("[+][~p][~p] - Response sent successfully~n", [calendar:local_time(), self()]);
+            {error, Reason} ->
+                io:format("[-][~p][~p] - Failed to send response: ~p~n", [calendar:local_time(), self(), Reason])
+        end,
+        
+        % Notificar o sistema de métricas
+        gen_server:cast(metrics, {close_connection}),
+        
+        % Enviar mensagem ao processo acceptor
+        AcceptorPid ! {connection_closed, Connection},
+        
+        % Fechar a conexão usando gen_tcp diretamente
+        gen_tcp:close(Connection)
+    catch
+        Type:Error:Stack ->
+            io:format("[-][~p][~p] - Error in write_response: ~p:~p~nStack: ~p~n", 
+                     [calendar:local_time(), self(), Type, Error, Stack]),
+            gen_server:cast(metrics, {close_connection}),
+            % Tentar fechar o socket usando gen_tcp diretamente
+            catch gen_tcp:close(Connection),
+            ok
+    end.
 
 not_found_response() ->
     <<"<html><head><title>Not Found</title></head><body>Not Found</body></html>">>.
@@ -123,13 +163,3 @@ internal_server_error_response() ->
 
 method_not_allowed_response() ->
     <<"<html><head><title>Method Not Allowed</title></head><body>Method Not Allowed</body></html>">>.
-
-day_of_week(Y, M, D) ->
-    Days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    DayNum = calendar:day_of_the_week(Y, M, D),
-    lists:nth(DayNum, Days).
-
-month(M) ->
-    Months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    lists:nth(M, Months).

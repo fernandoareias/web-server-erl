@@ -1,11 +1,11 @@
 -module(web_server_erl_sup).
-
+-author('Fernando Areias <nando.calheirosx@gmail.com>').
 -behaviour(supervisor).
 
 -export([start_link/0, init/1]).
 
 start_link() ->
-    io:format("[+][~p] - Starting supervisor...~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - Starting supervisor...~n", [calendar:local_time(), self()]),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
@@ -60,14 +60,19 @@ init([]) ->
             modules => [web_server_http_get]
         },
         #{
-            id => web_server_request_listener,
-            start => {web_server_request_listener, start_link, []},
-            restart => permanent,
+            id => web_server_tcp_listener,
+            start => {web_server_tcp_listener, start_link,
+                    [{local, http_server},  %% Name
+                    web_server_tcp_acceptor,          %% Module -- acceptor
+                    [{port, 8091}],                   %% Args -- porta de escuta
+                    []                                %% Opts -- geralmente não usado
+                    ]},
+            restart => temporary,
             shutdown => 5000,
             type => worker,
-            modules => [web_server_request_listener]
+            modules => [web_server_tcp_listener]
         }
         
     ],
-    io:format("[+][~p] - Supervisor initialized with ~p child processes~n", [calendar:local_time(), length(ChildSpecs)]),
+    io:format("[+][~p][~p] - Supervisor initialized with ~p child processes~n", [calendar:local_time(), self(), length(ChildSpecs)]),
     {ok, {SupFlags, ChildSpecs}}.

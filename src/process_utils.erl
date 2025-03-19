@@ -1,5 +1,5 @@
 -module(process_utils).
-
+-author('Fernando Areias <nando.calheirosx@gmail.com>').
 -export([get_message_count_by_name/1]).
 
 get_message_count_by_name(Name) ->

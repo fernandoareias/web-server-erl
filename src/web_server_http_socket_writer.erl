@@ -1,10 +1,10 @@
 -module(web_server_http_socket_writer).
 -behaviour(gen_server).
-
+-author('Fernando Areias <nando.calheirosx@gmail.com>').
 %% API
 -export([start_link/0, stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
--export([write_success_ok/3, write_not_found/1, write_unauthorized/1, write_method_not_allowed/1, write_internal_server_error/1]).
+-export([write_success_ok/4, write_not_found/2, write_unauthorized/2, write_method_not_allowed/2, write_internal_server_error/2]).
 
 -define(CRLF, "\r\n").
 -define(AUTH_REALM, "RESTRITO").
@@ -15,71 +15,75 @@
 %%%===================================================================
 
 start_link() ->
-    io:format("[+][~p] - Starting Socket Writer...~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - Starting Socket Writer...~n", [calendar:local_time(), self()]),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 stop() -> 
     gen_server:stop(?MODULE).   
 
 init(_Args) ->
-    io:format("[+][~p] - Initing Socket Writer...~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - Initing Socket Writer...~n", [calendar:local_time(), self()]),
     {ok, []}.
 
 handle_call(_Request, _From, State) ->
+    io:format("[-][~p][~p] - Received unknown call: ~p~n", [calendar:local_time(), self(), _Request]),
     {reply, ok, State}.
 
-handle_cast({success_ok, {Connection, ContentType, Content}}, State) -> 
-    write_response(Connection, "200 OK", ContentType, Content),
+handle_cast({success_ok, {Connection, ContentType, Content, AcceptorPid}}, State) -> 
+    write_response(Connection, "200 OK", ContentType, Content, AcceptorPid),
     {noreply, State};
-handle_cast({not_found, Connection}, State) -> 
-    write_response(Connection, "404 Not Found", "text/html", not_found_response()),
+handle_cast({not_found, Connection, AcceptorPid}, State) -> 
+    write_response(Connection, "404 Not Found", "text/html", not_found_response(), AcceptorPid),
     {noreply, State};
-handle_cast({unauthorized, Connection}, State) -> 
-    write_response(Connection, "401 Unauthorized", "text/html", unauthorized_response()),
+handle_cast({unauthorized, Connection, AcceptorPid}, State) -> 
+    write_response(Connection, "401 Unauthorized", "text/html", unauthorized_response(), AcceptorPid),
     {noreply, State};
-handle_cast({method_not_allowed, Connection}, State) -> 
-    write_response(Connection, "405 Method Not Allowed", "text/html", method_not_allowed_response()),
+handle_cast({method_not_allowed, Connection, AcceptorPid}, State) -> 
+    write_response(Connection, "405 Method Not Allowed", "text/html", method_not_allowed_response(), AcceptorPid),
     {noreply, State};
-handle_cast({internal_server_error, Connection}, State) -> 
-    write_response(Connection, "500 Internal Server Error", "text/html", internal_server_error_response()),
+handle_cast({internal_server_error, Connection, AcceptorPid}, State) -> 
+    write_response(Connection, "500 Internal Server Error", "text/html", internal_server_error_response(), AcceptorPid),
     {noreply, State};
 handle_cast(_Msg, State) ->
+    io:format("[-][~p][~p] - Received unknown cast: ~p~n", [calendar:local_time(), self(), _Msg]),
     {noreply, State}.
 
 handle_info(_Info, State) ->
+    io:format("[-][~p][~p] - Received unknown info: ~p~n", [calendar:local_time(), self(), _Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
-    io:format("[+][~p] - HTTP parser terminated.~n", [calendar:local_time()]),
+    io:format("[+][~p][~p] - HTTP parser terminated.~n", [calendar:local_time(), self()]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
+    io:format("[+][~p][~p] - Performing code change...~n", [calendar:local_time(), self()]),
     {ok, State}.
 
 %%%===================================================================
 %% Interface
 %%%===================================================================
 
-write_success_ok(Connection, ContentType, Content) ->
-    gen_server:cast(?MODULE, {success_ok, {Connection, ContentType, Content}}).
+write_success_ok(Connection, ContentType, Content, AcceptorPid) ->
+    gen_server:cast(?MODULE, {success_ok, {Connection, ContentType, Content, AcceptorPid}}).
 
-write_not_found(Connection) ->
-    gen_server:cast(?MODULE, {not_found, Connection}).
+write_not_found(Connection, AcceptorPid) ->
+    gen_server:cast(?MODULE, {not_found, Connection, AcceptorPid}).
 
-write_unauthorized(Connection) ->
-    gen_server:cast(?MODULE, {unauthorized, Connection}).
+write_unauthorized(Connection, AcceptorPid) ->
+    gen_server:cast(?MODULE, {unauthorized, Connection, AcceptorPid}).
 
-write_method_not_allowed(Connection) ->
-    gen_server:cast(?MODULE, {method_not_allowed, Connection}).
+write_method_not_allowed(Connection, AcceptorPid) ->
+    gen_server:cast(?MODULE, {method_not_allowed, Connection, AcceptorPid}).
 
-write_internal_server_error(Connection) ->
-    gen_server:cast(?MODULE, {internal_server_error, Connection}).
+write_internal_server_error(Connection, AcceptorPid) ->
+    gen_server:cast(?MODULE, {internal_server_error, Connection, AcceptorPid}).
 
 %%%===================================================================
 %% Funcoes privadas
 %%%===================================================================
 
-write_response(Connection, Status, ContentType, Body) ->
+write_response(Connection, Status, ContentType, Body, AcceptorPid) ->
     {{Year, Month, Day}, {Hour, Minute, Second}} = erlang:universaltime(),
     Date = io_lib:format("~s, ~2..0w ~s ~4..0w ~2..0w:~2..0w:~2..0w GMT",
                          [day_of_week(Year, Month, Day), Day, month(Month), Year, Hour, Minute, Second]),
@@ -94,17 +98,19 @@ write_response(Connection, Status, ContentType, Body) ->
         "Connection: close", ?CRLF,
         ?CRLF
     ],
-    io:format("[*][~p] - Connection ~p | Status response ~p ~n", [calendar:local_time(), Connection, Status]),
+    io:format("[*][~p][~p] - Connection ~p | Status response ~p ~n", [calendar:local_time(), self(), Connection, Status]),
     Response = list_to_binary([Headers, BinaryBody]),
     case gen_tcp:send(Connection, Response) of
         ok ->
-            io:format("[+][~p] - Response sent successfully~n", [calendar:local_time()]);
+            io:format("[+][~p][~p] - Response sent successfully~n", [calendar:local_time(), self()]);
         {error, Reason} ->
-            io:format("[-][~p] - Failed to send response: ~p~n", [calendar:local_time(), Reason])
+            io:format("[-][~p][~p] - Failed to send response: ~p~n", [calendar:local_time(), self(), Reason])
     end,
     gen_server:cast(metrics, {close_connection}),
+    io:format("[+][~p][~p] - Send message connection_closed to process: ~p ~n", [calendar:local_time(), self(), AcceptorPid]),
+    AcceptorPid ! {connection_closed, Connection},
     gen_tcp:close(Connection),
-    io:format("[+][~p] - Connection closed~n", [calendar:local_time()]).
+    io:format("[+][~p][~p] - Connection closed~n", [calendar:local_time(), self()]).
 
 not_found_response() ->
     <<"<html><head><title>Not Found</title></head><body>Not Found</body></html>">>.

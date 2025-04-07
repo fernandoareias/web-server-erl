@@ -7,5 +7,5 @@ Web server implemented with erlang and staged event-driven architecture
     $ rebar3 compile && rebar3 shell
 
 
-# First request
-<img width="1440" alt="Image" src="https://github.com/user-attachments/assets/e36711d3-d133-4970-ae99-4eda42cda7d1" />
+# BEAM Processes
+![image](https://github.com/user-attachments/assets/85c716c7-36a6-4597-8aae-ac52c13cdfc4)
